@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { BaseRouter } from './base-router'
 import { WebPushError } from 'web-push'
+import { Subscription } from '@/utils/web-push'
 
 export class ApiRouter extends BaseRouter {
   async init(): Promise<void> {
@@ -48,6 +49,27 @@ export class ApiRouter extends BaseRouter {
     }
   }
 
+  /**
+   * 購読リクエストの body が登録可能な形か検証する
+   * @param body リクエスト body (信頼できない入力)
+   * @returns 宛先が設定済みの web-push 宛先で、必須項目がすべて空でない文字列なら true
+   */
+  private isValidSubscribeBody(
+    body: Partial<Subscription> | undefined | null
+  ): body is Subscription {
+    const isNonEmpty = (value: unknown): boolean =>
+      typeof value === 'string' && value.length > 0
+    return (
+      isNonEmpty(body?.destinationName) &&
+      isNonEmpty(body?.endpoint) &&
+      isNonEmpty(body?.keys?.p256dh) &&
+      isNonEmpty(body?.keys?.auth) &&
+      this.config.destinations.some(
+        (d) => d.type === 'web-push' && d.name === body?.destinationName
+      )
+    )
+  }
+
   private async routePostSubscribe(
     request: FastifyRequest<{
       Body: {
@@ -64,6 +86,13 @@ export class ApiRouter extends BaseRouter {
   ) {
     const subscription = request.body
 
+    if (!this.isValidSubscribeBody(subscription)) {
+      await reply.code(400).send({
+        message: `Invalid subscription: destinationName must be a configured web-push destination, and endpoint, keys.p256dh and keys.auth must be non-empty strings (destinationName: ${String((subscription as Partial<Subscription> | undefined)?.destinationName)})`,
+      })
+      return
+    }
+
     try {
       const statusCode = await this.webPush.sendNotification(
         subscription,
@@ -73,7 +102,10 @@ export class ApiRouter extends BaseRouter {
         })
       )
 
-      this.webPush.addSubscription(subscription)
+      // 404・410 (失効) と 500 (送信失敗) は 2xx ではないため保存しない
+      if (statusCode >= 200 && statusCode < 300) {
+        this.webPush.addSubscription(subscription)
+      }
 
       await reply.code(statusCode).send()
     } catch (error) {
