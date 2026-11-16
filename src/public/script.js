@@ -208,7 +208,7 @@ async function main() {
 
   unsubscribeButton.addEventListener('click', async () => {
     try {
-      const result = await unsubscribe()
+      const result = await unsubscribe(destinationNameSelect.value)
       alert(result ? '通知を解除しました' : '通知の解除に失敗しました')
     } catch (error) {
       console.error(error)
