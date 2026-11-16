@@ -30,12 +30,6 @@ interface DestinationSlack {
   webhook_url: string
 }
 
-interface DestinationLINENotify {
-  type: 'line-notify'
-  /** LINE Notify のトークン */
-  token: string
-}
-
 interface DestinationWebPush {
   type: 'web-push'
 }
@@ -55,7 +49,6 @@ export type IDestination = (
   | DestinationDiscordWebhook
   | DestinationDiscordBot
   | DestinationSlack
-  | DestinationLINENotify
   | DestinationWebPush
 ) & {
   /** 宛先名 */
@@ -72,6 +65,12 @@ interface Self {
 }
 
 export interface Configuration {
+  /**
+   * 通知先の一覧
+   *
+   * LINE Notify は 2025-03-31 に提供が終了したため `line-notify` は使えない。
+   * 設定に残っていると起動時にエラーになるので、削除するか Discord / Slack / Web Push へ移行する。
+   */
   destinations: IDestination[]
   selfs: Self[]
   router: {
@@ -121,12 +120,6 @@ export const isDestinationSlack = (
   return destination.type === 'slack' && !!destination.webhook_url
 }
 
-export const isDestinationLINENotify = (
-  destination: any
-): destination is DestinationLINENotify => {
-  return destination.type === 'line-notify' && !!destination.token
-}
-
 export const isDestinationWebPush = (
   destination: any
 ): destination is DestinationWebPush => {
@@ -148,7 +141,6 @@ function checkConfig(config: any): Record<string, boolean> {
           isDestinationDiscordWebhook(destination) ||
           isDestinationDiscordBot(destination) ||
           isDestinationSlack(destination) ||
-          isDestinationLINENotify(destination) ||
           isDestinationWebPush(destination)
         )
       }),
@@ -177,11 +169,58 @@ const isConfig = (config: any): config is Configuration => {
   return Object.values(checkConfig(config)).every(Boolean)
 }
 
-export function loadConfig(): Configuration {
-  if (!fs.existsSync(PATH.CONFIG_FILE)) {
+/**
+ * 提供終了した LINE Notify の宛先が設定に残っていれば、移行案内つきのエラーを投げる
+ *
+ * 汎用の検証エラーでは原因が分からないため、`isConfig` の前に専用のエラーで拒否する。
+ * 宛先名が空または文字列でない宛先は、配列の添字 (`#0` から) で示す。
+ *
+ * @param config 読み込んだ設定 (未検証)
+ * @throws `line-notify` の宛先が 1 つ以上あるとき
+ */
+function assertNoRetiredLineNotify(config: any): void {
+  if (
+    typeof config !== 'object' ||
+    config === null ||
+    !Array.isArray(config.destinations)
+  ) {
+    return
+  }
+  const retired = config.destinations.flatMap(
+    (destination: any, index: number): string[] => {
+      if (
+        typeof destination !== 'object' ||
+        destination === null ||
+        destination.type !== 'line-notify'
+      ) {
+        return []
+      }
+      const name: unknown = destination.name
+      return [typeof name === 'string' && name !== '' ? name : `#${index}`]
+    }
+  )
+  if (retired.length > 0) {
+    throw new Error(
+      `LINE Notify destinations are no longer supported because the service ended on 2025-03-31. Remove or replace these destinations: ${retired.join(', ')}`
+    )
+  }
+}
+
+/**
+ * 設定ファイルを読み込んで検証する
+ *
+ * @param configFile 設定ファイルのパス。省略時は `PATH.CONFIG_FILE`
+ * @returns 検証済みの設定
+ * @throws ファイルがない、または設定が不正なとき
+ */
+export function loadConfig(
+  configFile: string = PATH.CONFIG_FILE
+): Configuration {
+  if (!fs.existsSync(configFile)) {
     throw new Error('Config file not found')
   }
-  const config = JSON.parse(fs.readFileSync(PATH.CONFIG_FILE, 'utf8'))
+  const config = JSON.parse(fs.readFileSync(configFile, 'utf8'))
+  assertNoRetiredLineNotify(config)
   if (!isConfig(config)) {
     const checks = checkConfig(config)
     throw new Error(`Invalid config: ${JSON.stringify(checks, null, 2)}`)

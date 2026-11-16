@@ -8,8 +8,9 @@
   - どの電話番号へ着信したかなど、詳細な情報が取得できます。
 - 電話の発着信があった場合、その電話番号が誰のものかを調べます。
   - 迷惑電話の着信時にすぐ把握できます。
-- 通知先として、Discord Webhook、Discord Bot、Slack Incoming Webhook、LINE Notify、Web Push API をサポートします。
+- 通知先として、Discord Webhook、Discord Bot、Slack Incoming Webhook、Web Push API をサポートします。
   - 対応しているブラウザであれば、[Push API](https://developer.mozilla.org/ja/docs/Web/API/Push_API) を用いてプラットフォームの障害に影響されることなく、PC・スマートフォンなどで即座に通知を受け取れます。
+  - LINE Notify は 2025-03-31 に提供が終了したため利用できません。設定に `line-notify` の宛先が残っていると起動時にエラーになるので、該当の宛先を削除するか、Discord・Slack・Web Push のいずれかへ移行してください。
 - ダッシュボード上で通信しているエンドポイントを利用してデータを取得します。
   - システムログがログイン情報で埋め尽くされることはありません。
 - Docker 上で動作します。

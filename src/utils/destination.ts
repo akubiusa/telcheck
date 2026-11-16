@@ -2,7 +2,6 @@ import {
   IDestination,
   isDestinationDiscordBot,
   isDestinationDiscordWebhook,
-  isDestinationLINENotify,
   isDestinationSlack,
   isDestinationWebPush,
 } from './config'
@@ -77,30 +76,6 @@ class SlackDestination extends BaseDestination {
     })
     if (!res.ok) {
       throw new Error(`Slack webhook failed (${res.status})`)
-    }
-  }
-}
-
-class LINENotifyDestination extends BaseDestination {
-  constructor(private readonly token: string) {
-    super()
-  }
-
-  public async send(message: string): Promise<void> {
-    const parameters = new URLSearchParams()
-    parameters.append('message', message)
-    const res = await fetchWithKeepAlive(
-      'https://notify-api.line.me/api/notify',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-        },
-        body: parameters,
-      }
-    )
-    if (!res.ok) {
-      throw new Error(`LINE Notify failed (${res.status})`)
     }
   }
 }
@@ -219,9 +194,6 @@ function createDestination(destination: IDestination): BaseDestination {
   }
   if (isDestinationSlack(destination)) {
     return new SlackDestination(destination.webhook_url)
-  }
-  if (isDestinationLINENotify(destination)) {
-    return new LINENotifyDestination(destination.token)
   }
   if (isDestinationWebPush(destination)) {
     return new WebPushDestination(destination.name)

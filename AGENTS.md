@@ -12,7 +12,7 @@ AI エージェント (Claude Code, GitHub Copilot など) 向けの共通ルー
 
 ## プロジェクト概要
 
-Yamaha NVR510 ルーターのシステムログを解析して発着信を検知し、電話番号の持ち主を調べて Discord / Slack / LINE Notify / Web Push へ通知する TypeScript 製アプリ。Docker で動作する。
+Yamaha NVR510 ルーターのシステムログを解析して発着信を検知し、電話番号の持ち主を調べて Discord / Slack / Web Push へ通知する TypeScript 製アプリ。Docker で動作する。
 
 - `src/main.ts`: エントリーポイント
 - `src/utils/nvr510.ts`: NVR510 のログ取得・解析
