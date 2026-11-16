@@ -57,23 +57,6 @@
             ],
             "type": "object"
         },
-        "DestinationLINENotify": {
-            "properties": {
-                "token": {
-                    "description": "LINE Notify のトークン",
-                    "type": "string"
-                },
-                "type": {
-                    "const": "line-notify",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "token",
-                "type"
-            ],
-            "type": "object"
-        },
         "DestinationSlack": {
             "properties": {
                 "type": {
@@ -180,30 +163,6 @@
                 {
                     "allOf": [
                         {
-                            "$ref": "#/definitions/DestinationLINENotify"
-                        },
-                        {
-                            "properties": {
-                                "condition": {
-                                    "$ref": "#/definitions/Conditions",
-                                    "description": "この宛先へ通知する条件 (正規表現)"
-                                },
-                                "name": {
-                                    "description": "宛先名",
-                                    "type": "string"
-                                }
-                            },
-                            "required": [
-                                "condition",
-                                "name"
-                            ],
-                            "type": "object"
-                        }
-                    ]
-                },
-                {
-                    "allOf": [
-                        {
                             "$ref": "#/definitions/DestinationWebPush"
                         },
                         {
@@ -247,6 +206,7 @@
     },
     "properties": {
         "destinations": {
+            "description": "通知先の一覧\n\nLINE Notify は 2025-03-31 に提供が終了したため `line-notify` は使えない。\n設定に残っていると起動時にエラーになるので、削除するか Discord / Slack / Web Push へ移行する。",
             "items": {
                 "$ref": "#/definitions/IDestination"
             },
